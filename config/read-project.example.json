@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "id": "example-project",
+  "state_dir": "D:/proj/example-project/.work/bridge-read",
+  "read_roots": [
+    "/nfs/replace-me/project"
+  ],
+  "read_paths": []
+}

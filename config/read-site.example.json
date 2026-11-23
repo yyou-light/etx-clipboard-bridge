@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "clipboard": true,
+  "runner": {
+    "repository": "your-owner/your-runner-repo",
+    "ref": "main",
+    "workflow": "etx-secure-read.yml",
+    "recipient_cert": "C:/path/to/your-recipient-public.pem",
+    "recipient_key": "C:/path/to/your-recipient-private.pem"
+  }
+}

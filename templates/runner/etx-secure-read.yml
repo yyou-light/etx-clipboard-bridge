@@ -1,0 +1,59 @@
+name: ETX Secure Read
+run-name: ETX secure read (user_requested_file) [${{ inputs.request_id }}]
+
+on:
+  workflow_dispatch:
+    inputs:
+      request_id:
+        description: Original bridge request ID
+        type: string
+        required: true
+      resource_type:
+        description: Fixed single-file operation
+        type: choice
+        options: [user_requested_file]
+        required: true
+      resource_id:
+        description: Exact authorized NFS file path
+        type: string
+        required: true
+      include_assets:
+        description: Single-file reads use false
+        type: boolean
+        default: false
+      explicit_user_request:
+        description: Confirm that this exact read is authorized
+        type: boolean
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  read:
+    runs-on: [self-hosted, linux, "${{ vars.ETX_BRIDGE_READ_RUNNER_LABEL || 'etx-read' }}"]
+    timeout-minutes: 8
+    steps:
+      - name: Read and encrypt one authorized file
+        id: result
+        shell: bash
+        env:
+          ETX_READ_HELPER: ${{ vars.ETX_BRIDGE_READ_HELPER }}
+          ETX_READ_CONFIG: ${{ vars.ETX_BRIDGE_READ_CONFIG }}
+          ETX_READ_REQUEST_ID: ${{ inputs.request_id }}
+          ETX_READ_RESOURCE_TYPE: ${{ inputs.resource_type }}
+          ETX_READ_RESOURCE_ID: ${{ inputs.resource_id }}
+          ETX_READ_INCLUDE_ASSETS: ${{ inputs.include_assets }}
+          ETX_READ_AUTHORIZED: ${{ inputs.explicit_user_request }}
+        run: |
+          test -n "$ETX_READ_HELPER"
+          test -n "$ETX_READ_CONFIG"
+          python3 -IB "$ETX_READ_HELPER" --config "$ETX_READ_CONFIG"
+      - name: Upload the encrypted response
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: etx-secure-read-${{ github.run_id }}
+          path: ${{ steps.result.outputs.ciphertext }}
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0

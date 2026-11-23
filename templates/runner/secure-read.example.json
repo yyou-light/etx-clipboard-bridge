@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "read_roots": ["/nfs/replace-me/project"],
+  "read_paths": [],
+  "lock_root": "/path/to/site/private/locks",
+  "recipient_cert": "/path/to/site/private/recipient-public.pem",
+  "openssl": "/usr/bin/openssl"
+}

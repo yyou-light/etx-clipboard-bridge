@@ -1,7 +1,7 @@
 # ETX Clipboard Bridge working rules
 
-- Runner, runner, X11 and the ETX clipboard bridge name the same current transport. A user request mentioning Runner always uses this clipboard implementation.
-- Do not inspect or enable the retired GitHub Actions transport; missing configuration or connectivity is reported for the current endpoint.
+- The public ETX bridge offers the clipboard (X11) channel and the configured GitHub Actions Runner channel for exact single-file reads. Runner refers to GitHub Actions. 剪切板, 剪贴板, and X11 refer to clipboard.
+- The public single-file entry is etx_bridge.py. Use an authorized site and project configuration, and follow the original channel and request on resume. Other clipboard actions use their existing entry points.
 
 - Keep source, real deployment settings, credentials and runtime results separate. Never commit `.private/`, `.work/`, keys, session files, business source, logs or waveforms.
 - Use the owner's existing logged-in graphical ETX. Do not create, resume or terminate ETX sessions, focus windows, or send simulated keyboard/mouse input.

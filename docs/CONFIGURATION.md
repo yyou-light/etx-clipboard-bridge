@@ -25,3 +25,46 @@
 Windows 和 Linux 的私钥分别生成，不打入公共发布包。Windows `.private/` ACL 限制到当前身份及 SYSTEM；Linux 配置、身份和队列使用当前用户的私有权限。
 
 波形适配要求使用者已有兼容的 xverif 后端、LSF 和许可，且配置两端相同的准确 FSDB 清单。后端的厂商软件、库和许可证均不在本仓库。来源部署验收的是 `verdi/Y-2026.03-1S`；实际版本由外部后端配置，本工具不会自动切换，其他版本须另行验证。
+
+## 单文件读取
+
+公开入口从安装目录加载读取客户端。命令接受两份私有配置，可以从其他项目目录调用。
+
+| 配置 | 填写内容 |
+| --- | --- |
+| [读取站点模板](../config/read-site.example.json) | 用 `clipboard` 启用已配对的剪切板。Runner 可设为 `null`，或填写 `repository`、分支 `ref`、工作流文件名 `workflow` 和接收证书及私钥的绝对路径。默认从 PATH 找已登录的 GitHub CLI 和 OpenSSL，也可显式指定 `gh`、`openssl` 的路径。 |
+| [读取项目模板](../config/read-project.example.json) | 填项目 `id`、结果与请求记录目录 `state_dir`、获准读的目录 `read_roots` 和精确文件 `read_paths`。每次读取和续接都核对该项目范围。接收端与 Runner 工作流仍执行其已部署的授权检查。 |
+
+剪切板复用安装目录的 `.private/x11/session/client.json` 及现有配对。Runner 使用兼容的
+ETX Secure Read 工作流。该工作流接受 `request_id`、`resource_type=user_requested_file`、
+`resource_id`、`include_assets`、`explicit_user_request`，按请求号标识 Run，
+上传 `etx-secure-read-<Run ID>` 加密 Artifact，并在原 Run 提供 `CIPHERTEXT_SHA256`。
+
+```powershell
+python C:/path/to/etx-clipboard-bridge/etx_bridge.py --site C:/private/read-site.json --project C:/project/bridge-project.json read /nfs/replace-me/project/sample.txt --transport 剪切板
+python C:/path/to/etx-clipboard-bridge/etx_bridge.py --site C:/private/read-site.json --project C:/project/bridge-project.json resume <原请求号>
+```
+
+`plan` 只查看选路。单文件默认混合模式，可显式传 `Runner`、`剪切板`
+（兼容 `x11` 和 `剪贴板`）或 `offline`。小文本优先剪切板，预计至少
+4 MiB 或 PDF/Office 走可用的 Runner。用 `--expected-bytes` 提供已知大小。
+只有确认剪切板尚未发送且符合分流条件时才切换。出错时保留原请求号并执行 `resume`。
+Runner 查原 Run，剪切板按原请求取结果，两路都核对本地结果长度与 SHA256。
+读取输出是 JSON，含本地文件、原请求号和回执路径。读取链路按文件操作，仿真和波形使用现有入口。
+
+### 自建 Runner 只读入口
+
+Linux Runner 需要 Python 3 和 OpenSSL。使用自己的 GitHub 仓库及 self-hosted Runner。
+将 [工作流模板](../templates/runner/etx-secure-read.yml) 放到该仓库的 `.github/workflows/`。
+在 Linux Runner 所在站点安装 [读取程序](../templates/runner/secure_read.py)，再按
+[Linux 读取配置模板](../templates/runner/secure-read.example.json) 填写准入范围和公钥。
+
+| 配置位置 | 要填的值 |
+| --- | --- |
+| GitHub 仓库变量 | `ETX_BRIDGE_READ_HELPER` 填 Linux 上读取程序的绝对路径，`ETX_BRIDGE_READ_CONFIG` 填 Linux 私有 JSON 的绝对路径。 `ETX_BRIDGE_READ_RUNNER_LABEL` 可指定自托管 Runner 标签，默认为 `etx-read`。 |
+| Linux 私有 JSON | 用当前 Runner 账号持有的 `0600` 文件。设准入目录 `read_roots`、精确文件 `read_paths`、站点 `lock_root` 和接收者**公钥证书** `recipient_cert`。锁目录为当前账号持有的 `0700` 目录。与剪切板服务共用工程时，填同一个源码锁目录。 |
+| Windows 站点 JSON | 填自己的仓库、分支、工作流文件名和解密证书及私钥路径。私钥保存在该站点的私有目录。 |
+
+Linux 侧接收单个授权的普通文本或 PDF、Office 文件，验证精确 NFS 路径并持共享读锁。
+工作流按原请求号产生 Run，在 GitHub 返回加密结果和密文摘要。本机用原请求 `resume` 回查。
+安装和现场确认使用无业务数据的合成文件。站点身份资料和实际授权配置进入用户自己的私有目录。
