@@ -77,4 +77,5 @@ Worker 和剪贴板接收端是独立进程。这次 Linux 核心只需更新 `e
 - `CLIPBOARD_USER_PRIORITY_YIELD`：本地剪贴板 I/O 超时，已退让，按原请求核对回执。
 - `PEER_REPLY_BINDING_REQUIRED`：接收端回包缺少 0.3.0 的请求摘要。核对 Windows 与 ETX 两端版本。
 - `RELEASE_FILE_CHANGED`：当前文件与发布摘要不符，核对来源；不要关闭校验。
+- `PasteClipbrdToXSelection() called too soon.`（Windows → Linux 原生粘贴与桥接器 `hello` 同时失效）：检查图形会话目录的 `etxproxy.log`。OpenText ETX `etxproxy`（已确认影响 12.5.4.9877）在 Windows → Linux 单次剪贴板写入超过 `65,504` 字节（约 64 KiB）时启用 X11 `INCR` 分块传输并置位内部 `PasteToXClientInProgress` 标志；若接收窗口中途退出或未完成读取，且此后 `etxproxy` 不再持有 Selection，所有运行期清零路径都会被门控跳过，导致后续所有 Windows → Linux 粘贴被拒绝。仅停止/重启桥接接收端或对会话执行 Suspend / Resume 无法解除死锁，必须在 ETX Dashboard 中 **Terminate** 当前图形会话并新建会话，再按常规流程重新启动接收端与所需 Worker。为避免复发，Windows → Linux 上传分块应保持默认 32 KiB（封帧后低于 64 KiB），不要调大到 128 KiB / 256 KiB，日常也避免通过 ETX 剪贴板直接粘贴超过 64 KiB 的大段文本。
 - 波形版本/许可错误：先查该请求自己的启动诊断，不更换工具版本或清理共享会话来重试。
